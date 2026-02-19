@@ -17,6 +17,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class MessageServiceTest {
 
+
     @Mock
     ChannelRepository channelRepository;
 
