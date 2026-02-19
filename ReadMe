@@ -1,9 +1,9 @@
-Intranet Communication Service
+# Intranet Communication Service
 
 A Spring Boot–based intranet messaging service that enables controlled communication between Controller and Terminal roles, with message persistence, state tracking, and a minimal dashboard UI for demo purposes.
 
-How to Run
-Prerequisites
+## How to Run
+## Prerequisites
 
 Java 17+
 
@@ -11,7 +11,7 @@ Maven
 
 Git
 
-Steps
+## Steps
 git clone https://github.com/Arjungandla07/intranet-communication-service.git
 cd intranet-communication-service
 mvn clean spring-boot:run
@@ -21,8 +21,8 @@ Backend runs on: http://localhost:8080
 
 UI dashboard: http://localhost:8080/index.html
 
-Key Design Decisions & Trade-offs
-1. Role-based communication
+## Key Design Decisions & Trade-offs
+### 1. Role-based communication
 
 Explicit Controller and Terminal roles
 
@@ -30,7 +30,7 @@ Prevents invalid bidirectional messaging
 
 Trade-off: Slightly more backend logic, but clearer business rules
 
-2. State-based messaging
+### 2. State-based messaging
 
 Backend exposes current state separately from message history
 
@@ -38,19 +38,19 @@ UI fetches state explicitly instead of inferring from last message
 
 Trade-off: Extra API endpoint, but avoids UI inconsistencies
 
-3. Simple REST over WebSockets
+### 3. Simple REST over WebSockets
 
 REST APIs used for messaging and polling
 
 Trade-off: No real-time push, but simpler, more predictable, and easier to test/demo
 
-4. Minimal frontend
+### 4. Minimal frontend
 
 Static HTML/JS dashboard for demo clarity
 
 Trade-off: Not production-grade UI, but keeps focus on backend design
 
-5. Testable service layer
+### 5. Testable service layer
 
 Business logic isolated in services
 
@@ -58,7 +58,7 @@ Unit tests use Mockito with repository mocking
 
 Trade-off: No full integration tests yet
 
-What I’d Improve With More Time
+## What I’d Improve With More Time
 
 Add WebSocket support for real-time updates
 
