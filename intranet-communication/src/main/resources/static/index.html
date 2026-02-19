@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Factory Walkie-Talkie Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+          font-family: Arial, sans-serif;
+          background: #f2f4f7;
+          margin: 0;
+        }
+
+        header {
+          background: #1f2937;
+          color: white;
+          padding: 16px 30px;
+          font-size: 20px;
+          font-weight: bold;
+        }
+
+        .container {
+          padding: 30px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+
+        .card {
+          background: white;
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h3 {
+          margin-top: 0;
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 8px;
+        }
+
+        label {
+          display: block;
+          margin-top: 10px;
+          font-weight: bold;
+        }
+
+        input, select, button {
+          width: 100%;
+          padding: 8px;
+          margin-top: 5px;
+          font-size: 14px;
+        }
+
+        button {
+          background: #2563eb;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+
+        button:hover {
+          background: #1d4ed8;
+        }
+
+        button.secondary {
+          background: #374151;
+        }
+
+        button.secondary:hover {
+          background: #111827;
+        }
+
+        button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        pre {
+          background: #111827;
+          color: #d1d5db;
+          padding: 12px;
+          border-radius: 6px;
+          max-height: 250px;
+          overflow: auto;
+        }
+
+        .state {
+          font-size: 14px;
+          padding: 10px;
+          background: #e5e7eb;
+          border-radius: 4px;
+          margin-top: 10px;
+          font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    Factory Walkie-Talkie Communication Dashboard
+</header>
+
+<div class="container">
+
+    <!-- SESSION -->
+    <div class="card">
+        <h3>Session Settings</h3>
+
+        <label>Role</label>
+        <select id="role" onchange="onRoleChange()">
+            <option value="terminal">Terminal</option>
+            <option value="controller">Controller</option>
+            <option value="admin">Control Room</option>
+        </select>
+
+        <label>Channel ID</label>
+        <input id="channelId" value="1">
+
+        <div class="state" id="stateBox">
+            State: Not fetched
+        </div>
+
+        <button class="secondary" onclick="fetchCurrentState()">
+            Fetch Current State
+        </button>
+    </div>
+
+    <!-- SEND TEXT -->
+    <div class="card">
+        <h3>Send Text Message</h3>
+
+        <label>Message</label>
+        <input id="textMsg" placeholder="Enter message">
+
+        <button onclick="sendText()">Send Message</button>
+    </div>
+
+    <!-- MEDIA -->
+    <div class="card">
+        <h3>Upload Media</h3>
+
+        <label>Media Type</label>
+        <select id="mediaType">
+            <option value="IMAGE">Image</option>
+            <option value="VIDEO">Video</option>
+            <option value="VOICE">Voice</option>
+        </select>
+
+        <label>File</label>
+        <input type="file" id="file">
+
+        <button onclick="sendMedia()">Upload Media</button>
+    </div>
+
+    <!-- LATEST MESSAGE -->
+    <div class="card">
+        <h3>Latest Message</h3>
+
+        <button class="secondary" onclick="fetchLatestMessage()">
+            Fetch Latest Message
+        </button>
+
+        <pre id="latestOutput"></pre>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="card" style="grid-column: span 2;">
+        <h3>Message History (Control Room Only)</h3>
+
+        <button class="secondary" id="historyBtn" onclick="fetchHistory()">
+            Fetch History
+        </button>
+
+        <pre id="historyOutput">
+History access restricted to Control Room.
+    </pre>
+    </div>
+
+</div>
+
+<script>
+    function authHeader() {
+      const role = document.getElementById("role").value;
+      const creds = {
+        terminal: "terminal:terminal123",
+        controller: "controller:controller123",
+        admin: "admin:admin123"
+      };
+      return "Basic " + btoa(creds[role]);
+    }
+
+    /* ---------- ROLE HANDLING ---------- */
+
+    function onRoleChange() {
+      const role = document.getElementById("role").value;
+      const historyBtn = document.getElementById("historyBtn");
+      const historyOutput = document.getElementById("historyOutput");
+
+      if (role === "admin") {
+        historyBtn.disabled = false;
+        historyOutput.textContent = "";
+      } else {
+        historyBtn.disabled = true;
+        historyOutput.textContent =
+          "History access restricted to Control Room.";
+      }
+
+      fetchCurrentState();
+    }
+
+    /* ---------- STATE ---------- */
+
+    function fetchCurrentState() {
+      fetch(`/channels/${channelId.value}/latest`, {
+        headers: { "Authorization": authHeader() }
+      })
+      .then(r => r.json())
+      .then(data => {
+        let stateText = "Unknown";
+
+        if (data.stateFlag === 1) {
+          stateText = "Last message sent by TERMINAL";
+        } else if (data.stateFlag === 0) {
+          stateText = "Last message sent by CONTROLLER";
+        }
+
+        document.getElementById("stateBox").textContent =
+          `State: ${data.stateFlag} (${stateText})`;
+      })
+      .catch(() => {
+        document.getElementById("stateBox").textContent =
+          "State: No messages yet";
+      });
+    }
+
+    /* ---------- SEND ---------- */
+
+    function sendText() {
+      fetch(`/channels/${channelId.value}/message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": authHeader()
+        },
+        body: JSON.stringify({
+          senderType: role.value.toUpperCase(),
+          messageType: "TEXT",
+          textBody: textMsg.value
+        })
+      })
+      .then(r => r.text())
+      .then(alert);
+    }
+
+    function sendMedia() {
+      const fd = new FormData();
+      fd.append("senderType", role.value.toUpperCase());
+      fd.append("messageType", mediaType.value);
+      fd.append("file", file.files[0]);
+
+      fetch(`/channels/${channelId.value}/message/upload`, {
+        method: "POST",
+        headers: { "Authorization": authHeader() },
+        body: fd
+      })
+      .then(r => r.text())
+      .then(alert);
+    }
+
+    /* ---------- FETCH ---------- */
+
+    function fetchLatestMessage() {
+      fetch(`/channels/${channelId.value}/latest`, {
+        headers: { "Authorization": authHeader() }
+      })
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById("latestOutput").textContent =
+          JSON.stringify(data, null, 2);
+      });
+    }
+
+    function fetchHistory() {
+      fetch(`/channels/${channelId.value}/history`, {
+        headers: { "Authorization": authHeader() }
+      })
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById("historyOutput").textContent =
+          JSON.stringify(data, null, 2);
+      });
+    }
+
+    /* ---------- INIT ---------- */
+    onRoleChange();
+</script>
+
+</body>
+</html>
